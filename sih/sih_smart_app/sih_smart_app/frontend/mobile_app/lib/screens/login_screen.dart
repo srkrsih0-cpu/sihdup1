@@ -23,7 +23,7 @@ class _LoginScreenState extends State<LoginScreen> {
   String _selectedRole = 'student';
   bool _isLoading = false;
 
-  Future<void> _login() async {
+  void _login() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() { _isLoading = true; });
 
@@ -165,7 +165,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: GradientButton(
-                    onPressed: _isLoading ? null : _login,
+                    onPressed: _isLoading ? () {} : _login,
                     text: 'Login',
                     isLoading: _isLoading,
                   ),

@@ -30,22 +30,22 @@ def create_app():
     app.config.from_object(Config)
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
     
-    // Add security configuration
+    # Add security configuration
     Talisman(app)
     limiter = Limiter(
-        app,
         key_func=get_remote_address,
         default_limits=["100 per hour"]
     )
+    limiter.init_app(app)
     
-    // Generate a secret key for CSRF protection
+    # Generate a secret key for CSRF protection
     app.secret_key = secrets.token_hex(16)
     
     db.init_app(app)
     Migrate(app, db)
     CORS(app)
     
-    // Add input validation functions
+    # Add input validation functions
     def validate_email(email):
         pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
         return re.match(pattern, email) is not None
@@ -55,7 +55,7 @@ def create_app():
         return re.match(pattern, phone) is not None
         
     def validate_password(password):
-        // Password should be at least 8 characters with at least one uppercase, one lowercase, one digit, and one special character
+        # Password should be at least 8 characters with at least one uppercase, one lowercase, one digit, and one special character
         if len(password) < 8:
             return False
         if not re.search(r'[A-Z]', password):
@@ -69,24 +69,24 @@ def create_app():
         return True
         
     def validate_college_id(college_id):
-        // College ID should be alphanumeric and 3-20 characters long
+        # College ID should be alphanumeric and 3-20 characters long
         pattern = r'^[a-zA-Z0-9]{3,20}$'
         return re.match(pattern, college_id) is not None
 
-    // Add authentication decorator
+    # Add authentication decorator
     def require_admin(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
-            // Simple authentication check - in production, use proper JWT
+            # Simple authentication check - in production, use proper JWT
             auth_header = request.headers.get('Authorization')
             if not auth_header:
                 return jsonify({"message": "Missing authorization header"}), 401
-            // In a real implementation, we would validate the token here
+            # In a real implementation, we would validate the token here
             return f(*args, **kwargs)
         return decorated_function
 
     def call_generative_ai(prompt):
-        // IMPORTANT: Replace "YOUR_API_KEY_HERE" with your key from Google AI Studio
+        # IMPORTANT: Replace "YOUR_API_KEY_HERE" with your key from Google AI Studio
         GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AIzaSyCYPytGT-Qzj4WaDEKjwlBZw9VWDhS7d2U")
         if not GEMINI_API_KEY or GEMINI_API_KEY == "YOUR_API_KEY_HERE":
             print("WARNING: Using simulated AI. Please add your Gemini API Key.")
@@ -98,34 +98,13 @@ def create_app():
             response = model.generate_content(prompt)
             return response.text.replace('*', '').replace('#', '')
         except Exception as e:
-            print(f"Error calling Gemini API: {e}")
+            print("Error calling Gemini API: " + str(e))
             return "1. Error fetching AI suggestion. 2. Check API key and network."
 
     # --- ROUTES ---
-    @app.route('/api/register_institution', methods=['POST'])
-    def register_institution():
-        data = request.get_json()
-        new_institution = Institution(name=data.get('institution_name'))
-        db.session.add(new_institution)
-        db.session.flush()
-        new_admin = User(
-            college_id=data.get('admin_id'), password=data.get('password'),
-            name=data.get('admin_name'), role='admin', institution_id=new_institution.id
-        )
-        db.session.add(new_admin)
-        db.session.commit()
-        return jsonify({"message": "Institution registered successfully!"}), 201
 
-    @app.route('/api/login', methods=['POST'])
-    def login():
-        data = request.get_json()
-        user = User.query.filter_by(college_id=data.get('college_id')).first()
-        if user and user.password == data.get('password'):
-            response = {"message": f"Welcome {user.name}!", "role": user.role, "user_id": user.id}
-            if user.role == 'student':
-                response['profile_completed'] = bool(user.career_goal)
-            return jsonify(response), 200
-        return jsonify({"message": "Invalid credentials"}), 401
+
+
     
     @app.route('/api/student/<int:user_id>/profile', methods=['POST'])
     def update_student_profile(user_id):
@@ -134,16 +113,16 @@ def create_app():
             return jsonify({"message": "Student not found"}), 404
         data = request.get_json()
         
-        // Validate input
+        # Validate input
         career_goal = data.get('career_goal')
         interests = data.get('interests')
         weak_subjects = data.get('weak_subjects')
         
-        // Basic validation - ensure fields are not empty
+        # Basic validation - ensure fields are not empty
         if not career_goal or not interests or not weak_subjects:
             return jsonify({"message": "All fields are required"}), 400
             
-        // Length validation
+        # Length validation
         if len(career_goal) > 100:
             return jsonify({"message": "Career goal must be less than 100 characters"}), 400
         if len(interests) > 200:
@@ -205,7 +184,7 @@ def create_app():
                     present_students.add(name)
             return jsonify({"message": "Faces recognized!", "present": list(present_students)}), 200
         except Exception as e:
-            return jsonify({"message": f"Error during recognition: {e}"}), 500
+            return jsonify({"message": "Error during recognition: " + str(e)}), 500
 
     @app.route('/api/save_attendance', methods=['POST'])
     def save_attendance():
@@ -227,9 +206,9 @@ def create_app():
             return jsonify({"message": "Attendance saved!"}), 200
         except Exception as e:
             db.session.rollback()
-            return jsonify({"message": f"An error occurred: {e}"}), 500
+            return jsonify({"message": "An error occurred: " + str(e)}), 500
 
-    // CRUD operations for Institutions
+    # CRUD operations for Institutions
     @app.route('/api/admin/institutions', methods=['GET'])
     @require_admin
     def get_institutions():
@@ -245,7 +224,7 @@ def create_app():
         data = request.get_json()
         name = data.get('name')
         
-        // Validate input
+        # Validate input
         if not name or len(name) < 3:
             return jsonify({"message": "Invalid institution name"}), 400
             
@@ -264,7 +243,7 @@ def create_app():
         data = request.get_json()
         name = data.get('name')
         
-        // Validate input
+        # Validate input
         if not name or len(name) < 3:
             return jsonify({"message": "Invalid institution name"}), 400
             
@@ -283,7 +262,7 @@ def create_app():
         db.session.commit()
         return jsonify({"message": "Institution deleted successfully"})
 
-    // CRUD operations for Branches
+    # CRUD operations for Branches
     @app.route('/api/admin/branches', methods=['GET'])
     @require_admin
     def get_branches():
@@ -306,7 +285,7 @@ def create_app():
         name = data.get('name')
         institution_id = data.get('institution_id')
         
-        // Validate input
+        # Validate input
         if not name or len(name) < 2:
             return jsonify({"message": "Invalid branch name"}), 400
         if not institution_id:
@@ -328,7 +307,7 @@ def create_app():
         name = data.get('name')
         institution_id = data.get('institution_id')
         
-        // Validate input
+        # Validate input
         if not name or len(name) < 2:
             return jsonify({"message": "Invalid branch name"}), 400
         if not institution_id:
@@ -350,7 +329,7 @@ def create_app():
         db.session.commit()
         return jsonify({"message": "Branch deleted successfully"})
 
-    // CRUD operations for Semesters
+    # CRUD operations for Semesters
     @app.route('/api/admin/semesters', methods=['GET'])
     @require_admin
     def get_semesters():
@@ -373,7 +352,7 @@ def create_app():
         number = data.get('number')
         branch_id = data.get('branch_id')
         
-        // Validate input
+        # Validate input
         if not isinstance(number, int) or number < 1 or number > 10:
             return jsonify({"message": "Invalid semester number"}), 400
         if not branch_id:
@@ -395,7 +374,7 @@ def create_app():
         number = data.get('number')
         branch_id = data.get('branch_id')
         
-        // Validate input
+        # Validate input
         if not isinstance(number, int) or number < 1 or number > 10:
             return jsonify({"message": "Invalid semester number"}), 400
         if not branch_id:
@@ -417,7 +396,7 @@ def create_app():
         db.session.commit()
         return jsonify({"message": "Semester deleted successfully"})
 
-    // CRUD operations for Subjects
+    # CRUD operations for Subjects
     @app.route('/api/admin/subjects', methods=['GET'])
     @require_admin
     def get_subjects():
@@ -442,7 +421,7 @@ def create_app():
         course_code = data.get('course_code')
         semester_id = data.get('semester_id')
         
-        // Validate input
+        # Validate input
         if not name or len(name) < 2:
             return jsonify({"message": "Invalid subject name"}), 400
         if not course_code or len(course_code) < 2:
@@ -467,7 +446,7 @@ def create_app():
         course_code = data.get('course_code')
         semester_id = data.get('semester_id')
         
-        // Validate input
+        # Validate input
         if not name or len(name) < 2:
             return jsonify({"message": "Invalid subject name"}), 400
         if not course_code or len(course_code) < 2:
@@ -492,7 +471,7 @@ def create_app():
         db.session.commit()
         return jsonify({"message": "Subject deleted successfully"})
 
-    // CRUD operations for Class Schedules
+    # CRUD operations for Class Schedules
     @app.route('/api/admin/schedules', methods=['GET'])
     @require_admin
     def get_schedules():
@@ -528,7 +507,7 @@ def create_app():
         start_time = data.get('start_time')
         end_time = data.get('end_time')
         
-        // Validate input
+        # Validate input
         if not subject_id:
             return jsonify({"message": "Subject ID is required"}), 400
         if not teacher_id:
@@ -571,7 +550,7 @@ def create_app():
         start_time = data.get('start_time')
         end_time = data.get('end_time')
         
-        // Validate input
+        # Validate input
         if not subject_id:
             return jsonify({"message": "Subject ID is required"}), 400
         if not teacher_id:
@@ -608,7 +587,7 @@ def create_app():
         db.session.commit()
         return jsonify({"message": "Schedule deleted successfully"})
 
-    // Bulk import for students
+    # Bulk import for students
     @app.route('/api/admin/upload/students', methods=['POST'])
     @require_admin
     @limiter.limit("10 per hour")
@@ -620,58 +599,58 @@ def create_app():
         if file.filename == '':
             return jsonify({"message": "No file selected"}), 400
             
-        // Check file extension
+        # Check file extension
         if not (file.filename.endswith('.csv') or file.filename.endswith('.xlsx') or file.filename.endswith('.xls')):
             return jsonify({"message": "Invalid file format. Please upload CSV or Excel file"}), 400
             
         try:
-            // Save file temporarily
+            # Save file temporarily
             filename = secure_filename(file.filename)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
             
-            // Process file based on extension
+            # Process file based on extension
             import pandas as pd
             if filename.endswith('.csv'):
                 df = pd.read_csv(filepath)
             else:
                 df = pd.read_excel(filepath)
                 
-            // Validate required columns
+            # Validate required columns
             required_columns = ['college_id', 'name', 'email', 'phone', 'branch_code', 'semester_number', 'password']
             if not all(col in df.columns for col in required_columns):
-                return jsonify({"message": f"Missing required columns. Required: {required_columns}"}), 400
+                return jsonify({"message": "Missing required columns. Required: " + str(required_columns)}), 400
                 
-            // Process each row
+            # Process each row
             created_count = 0
             errors = []
             
             for index, row in df.iterrows():
                 try:
-                    // Validate data
+                    # Validate data
                     if not row['college_id'] or not row['name']:
-                        errors.append(f"Row {index+1}: Missing required fields")
+                        errors.append("Row " + str(index+1) + ": Missing required fields")
                         continue
                         
-                    // Check if student already exists
+                    # Check if student already exists
                     existing_student = User.query.filter_by(college_id=row['college_id'], role='student').first()
                     if existing_student:
                         errors.append(f"Row {index+1}: Student with college_id {row['college_id']} already exists")
                         continue
                         
-                    // Find branch
+                    # Find branch
                     branch = Branch.query.filter_by(name=row['branch_code']).first()
                     if not branch:
                         errors.append(f"Row {index+1}: Branch {row['branch_code']} not found")
                         continue
                         
-                    // Find semester
+                    # Find semester
                     semester = Semester.query.filter_by(branch_id=branch.id, number=row['semester_number']).first()
                     if not semester:
                         errors.append(f"Row {index+1}: Semester {row['semester_number']} not found for branch {row['branch_code']}")
                         continue
                         
-                    // Create student
+                    # Create student
                     student = User(
                         college_id=row['college_id'],
                         name=row['name'],
@@ -682,7 +661,7 @@ def create_app():
                         current_semester_id=semester.id
                     )
                     
-                    // Add email and phone if provided
+                    # Add email and phone if provided
                     if 'email' in row and row['email']:
                         student.email = row['email']
                     if 'phone' in row and row['phone']:
@@ -696,7 +675,7 @@ def create_app():
                     
             db.session.commit()
             
-            // Clean up temporary file
+            # Clean up temporary file
             os.remove(filepath)
             
             return jsonify({
@@ -705,12 +684,12 @@ def create_app():
             }), 200
             
         except Exception as e:
-            // Clean up temporary file if it exists
+            # Clean up temporary file if it exists
             if 'filepath' in locals() and os.path.exists(filepath):
                 os.remove(filepath)
             return jsonify({"message": f"Error processing file: {str(e)}"}), 500
 
-    // Bulk import for teachers
+    # Bulk import for teachers
     @app.route('/api/admin/upload/teachers', methods=['POST'])
     @require_admin
     @limiter.limit("10 per hour")
@@ -722,52 +701,52 @@ def create_app():
         if file.filename == '':
             return jsonify({"message": "No file selected"}), 400
             
-        // Check file extension
+        # Check file extension
         if not (file.filename.endswith('.csv') or file.filename.endswith('.xlsx') or file.filename.endswith('.xls')):
             return jsonify({"message": "Invalid file format. Please upload CSV or Excel file"}), 400
             
         try:
-            // Save file temporarily
+            # Save file temporarily
             filename = secure_filename(file.filename)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
             
-            // Process file based on extension
+            # Process file based on extension
             import pandas as pd
             if filename.endswith('.csv'):
                 df = pd.read_csv(filepath)
             else:
                 df = pd.read_excel(filepath)
                 
-            // Validate required columns
+            # Validate required columns
             required_columns = ['college_id', 'name', 'email', 'phone', 'department', 'designation', 'password']
             if not all(col in df.columns for col in required_columns):
                 return jsonify({"message": f"Missing required columns. Required: {required_columns}"}), 400
                 
-            // Process each row
+            # Process each row
             created_count = 0
             errors = []
             
             for index, row in df.iterrows():
                 try:
-                    // Validate data
+                    # Validate data
                     if not row['college_id'] or not row['name']:
                         errors.append(f"Row {index+1}: Missing required fields")
                         continue
                         
-                    // Check if teacher already exists
+                    # Check if teacher already exists
                     existing_teacher = User.query.filter_by(college_id=row['college_id'], role='teacher').first()
                     if existing_teacher:
                         errors.append(f"Row {index+1}: Teacher with college_id {row['college_id']} already exists")
                         continue
                         
-                    // Find institution
+                    # Find institution
                     institution = Institution.query.filter_by(name=row['department']).first()
                     if not institution:
                         errors.append(f"Row {index+1}: Institution {row['department']} not found")
                         continue
                         
-                    // Create teacher
+                    # Create teacher
                     teacher = User(
                         college_id=row['college_id'],
                         name=row['name'],
@@ -776,7 +755,7 @@ def create_app():
                         institution_id=institution.id
                     )
                     
-                    // Add email and phone if provided
+                    # Add email and phone if provided
                     if 'email' in row and row['email']:
                         teacher.email = row['email']
                     if 'phone' in row and row['phone']:
@@ -792,7 +771,7 @@ def create_app():
                     
             db.session.commit()
             
-            // Clean up temporary file
+            # Clean up temporary file
             os.remove(filepath)
             
             return jsonify({
@@ -801,12 +780,12 @@ def create_app():
             }), 200
             
         except Exception as e:
-            // Clean up temporary file if it exists
+            # Clean up temporary file if it exists
             if 'filepath' in locals() and os.path.exists(filepath):
                 os.remove(filepath)
             return jsonify({"message": f"Error processing file: {str(e)}"}), 500
 
-    // Bulk import for timetable
+    # Bulk import for timetable
     @app.route('/api/admin/upload/timetable', methods=['POST'])
     @require_admin
     @limiter.limit("10 per hour")
@@ -818,52 +797,52 @@ def create_app():
         if file.filename == '':
             return jsonify({"message": "No file selected"}), 400
             
-        // Check file extension
+        # Check file extension
         if not (file.filename.endswith('.csv') or file.filename.endswith('.xlsx') or file.filename.endswith('.xls')):
             return jsonify({"message": "Invalid file format. Please upload CSV or Excel file"}), 400
             
         try:
-            // Save file temporarily
+            # Save file temporarily
             filename = secure_filename(file.filename)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
             
-            // Process file based on extension
+            # Process file based on extension
             import pandas as pd
             if filename.endswith('.csv'):
                 df = pd.read_csv(filepath)
             else:
                 df = pd.read_excel(filepath)
                 
-            // Validate required columns
+            # Validate required columns
             required_columns = ['subject_code', 'teacher_college_id', 'room', 'day_of_week', 'start_time', 'end_time']
             if not all(col in df.columns for col in required_columns):
                 return jsonify({"message": f"Missing required columns. Required: {required_columns}"}), 400
                 
-            // Process each row
+            # Process each row
             created_count = 0
             errors = []
             
             for index, row in df.iterrows():
                 try:
-                    // Validate data
+                    # Validate data
                     if not row['subject_code'] or not row['teacher_college_id']:
                         errors.append(f"Row {index+1}: Missing required fields")
                         continue
                         
-                    // Find subject
+                    # Find subject
                     subject = Subject.query.filter_by(course_code=row['subject_code']).first()
                     if not subject:
                         errors.append(f"Row {index+1}: Subject with code {row['subject_code']} not found")
                         continue
                         
-                    // Find teacher
+                    # Find teacher
                     teacher = User.query.filter_by(college_id=row['teacher_college_id'], role='teacher').first()
                     if not teacher:
                         errors.append(f"Row {index+1}: Teacher with college_id {row['teacher_college_id']} not found")
                         continue
                         
-                    // Validate day of week
+                    # Validate day of week
                     try:
                         day_of_week = int(row['day_of_week'])
                         if day_of_week < 0 or day_of_week > 6:
@@ -873,7 +852,7 @@ def create_app():
                         errors.append(f"Row {index+1}: Invalid day of week format {row['day_of_week']}")
                         continue
                         
-                    // Validate time format
+                    # Validate time format
                     try:
                         start_time = datetime.strptime(row['start_time'], '%H:%M').time()
                         end_time = datetime.strptime(row['end_time'], '%H:%M').time()
@@ -881,7 +860,7 @@ def create_app():
                         errors.append(f"Row {index+1}: Invalid time format. Use HH:MM")
                         continue
                         
-                    // Create schedule
+                    # Create schedule
                     schedule = ClassSchedule(
                         subject_id=subject.id,
                         teacher_id=teacher.id,
@@ -899,7 +878,7 @@ def create_app():
                     
             db.session.commit()
             
-            // Clean up temporary file
+            # Clean up temporary file
             os.remove(filepath)
             
             return jsonify({
@@ -908,45 +887,45 @@ def create_app():
             }), 200
             
         except Exception as e:
-            // Clean up temporary file if it exists
+            # Clean up temporary file if it exists
             if 'filepath' in locals() and os.path.exists(filepath):
                 os.remove(filepath)
             return jsonify({"message": f"Error processing file: {str(e)}"}), 500
 
-    // Rate limiting for login
+    # Rate limiting for login
     @app.route('/api/login', methods=['POST'])
     @limiter.limit("5 per minute")
     def login():
         data = request.get_json()
         
-        // Validate input
+        # Validate input
         college_id = data.get('college_id')
         password = data.get('password')
         
         if not college_id or not password:
             return jsonify({"message": "College ID and password are required"}), 400
             
-        // Validate college ID format
+        # Validate college ID format
         if not validate_college_id(college_id):
             return jsonify({"message": "Invalid college ID format"}), 400
             
-        // Validate password strength (for new registrations)
-        // For existing users, we'll check the stored password
+        # Validate password strength (for new registrations)
+        # For existing users, we'll check the stored password
         user = User.query.filter_by(college_id=college_id).first()
         if user and user.password == password:
-            response = {"message": f"Welcome {user.name}!", "role": user.role, "user_id": user.id}
+            response = {"message": "Welcome " + user.name + "!", "role": user.role, "user_id": user.id}
             if user.role == 'student':
                 response['profile_completed'] = bool(user.career_goal)
             return jsonify(response), 200
         return jsonify({"message": "Invalid credentials"}), 401
 
-    // Enhanced registration endpoint with input validation
+    # Enhanced registration endpoint with input validation
     @app.route('/api/register_institution', methods=['POST'])
     @limiter.limit("3 per minute")
     def register_institution():
         data = request.get_json()
         
-        // Validate input
+        # Validate input
         institution_name = data.get('institution_name')
         admin_id = data.get('admin_id')
         admin_name = data.get('admin_name')
@@ -955,20 +934,20 @@ def create_app():
         if not all([institution_name, admin_id, admin_name, password]):
             return jsonify({"message": "All fields are required"}), 400
             
-        // Validate college ID format
+        # Validate college ID format
         if not validate_college_id(admin_id):
             return jsonify({"message": "Invalid admin ID format"}), 400
             
-        // Validate password strength
+        # Validate password strength
         if not validate_password(password):
             return jsonify({"message": "Password must be at least 8 characters with uppercase, lowercase, digit, and special character"}), 400
             
-        // Check if institution already exists
+        # Check if institution already exists
         existing_institution = Institution.query.filter_by(name=institution_name).first()
         if existing_institution:
             return jsonify({"message": "Institution already exists"}), 400
             
-        // Check if admin already exists
+        # Check if admin already exists
         existing_admin = User.query.filter_by(college_id=admin_id).first()
         if existing_admin:
             return jsonify({"message": "Admin ID already exists"}), 400
@@ -987,7 +966,7 @@ def create_app():
         db.session.commit()
         return jsonify({"message": "Institution registered successfully!"}), 201
 
-    // Assign teacher to subject for a semester
+    # Assign teacher to subject for a semester
     @app.route('/api/admin/assign_teacher', methods=['POST'])
     @require_admin
     def assign_teacher():
@@ -998,23 +977,23 @@ def create_app():
         if not teacher_id or not subject_id:
             return jsonify({"message": "Teacher ID and Subject ID are required"}), 400
             
-        // Find the subject
+        # Find the subject
         subject = Subject.query.get(subject_id)
         if not subject:
             return jsonify({"message": "Subject not found"}), 404
             
-        // Find the teacher
+        # Find the teacher
         teacher = User.query.get(teacher_id)
         if not teacher or teacher.role != 'teacher':
             return jsonify({"message": "Teacher not found"}), 404
             
-        // Update the subject's teacher
+        # Update the subject's teacher
         subject.teacher_id = teacher_id
         db.session.commit()
         
-        return jsonify({"message": f"Teacher {teacher.name} assigned to subject {subject.name}"})
+        return jsonify({"message": "Teacher " + teacher.name + " assigned to subject " + subject.name})
 
-    // Enroll student in semester
+    # Enroll student in semester
     @app.route('/api/admin/enroll_student', methods=['POST'])
     @require_admin
     def enroll_student():
@@ -1025,28 +1004,28 @@ def create_app():
         if not student_id or not semester_id:
             return jsonify({"message": "Student ID and Semester ID are required"}), 400
             
-        // Find the student
+        # Find the student
         student = User.query.get(student_id)
         if not student or student.role != 'student':
             return jsonify({"message": "Student not found"}), 404
             
-        // Find the semester
+        # Find the semester
         semester = Semester.query.get(semester_id)
         if not semester:
             return jsonify({"message": "Semester not found"}), 404
             
-        // Check if already enrolled
+        # Check if already enrolled
         if semester in student.semesters_enrolled:
             return jsonify({"message": "Student already enrolled in this semester"}), 400
             
-        // Enroll student
+        # Enroll student
         student.semesters_enrolled.append(semester)
         student.current_semester_id = semester_id
         db.session.commit()
         
-        return jsonify({"message": f"Student {student.name} enrolled in semester {semester.number}"})
+        return jsonify({"message": "Student " + student.name + " enrolled in semester " + str(semester.number)})
 
-    // Get student attendance analytics
+    # Get student attendance analytics
     @app.route('/api/admin/student/<int:student_id>/analytics', methods=['GET'])
     @require_admin
     def get_student_analytics(student_id):
@@ -1054,15 +1033,15 @@ def create_app():
         if not student or student.role != 'student':
             return jsonify({"message": "Student not found"}), 404
             
-        // Get all attendance records for this student
+        # Get all attendance records for this student
         attendance_records = AttendanceRecord.query.filter_by(student_id=student_id).all()
         
-        // Group by subject
+        # Group by subject
         subject_attendance = {}
         for record in attendance_records:
             class_schedule = record.class_schedule
             subject = class_schedule.subject
-            subject_key = f"{subject.name} ({subject.course_code})"
+            subject_key = subject.name + " (" + subject.course_code + ")"
             
             if subject_key not in subject_attendance:
                 subject_attendance[subject_key] = {"total": 0, "present": 0}
@@ -1071,7 +1050,7 @@ def create_app():
             if record.status == "present":
                 subject_attendance[subject_key]["present"] += 1
                 
-        // Calculate percentages
+        # Calculate percentages
         for subject_key, data in subject_attendance.items():
             if data["total"] > 0:
                 data["percentage"] = round((data["present"] / data["total"]) * 100, 2)
@@ -1080,17 +1059,17 @@ def create_app():
                 
         return jsonify(subject_attendance)
 
-    // Get teacher class analytics
+    # Get teacher class analytics
     @app.route('/api/teacher/<int:teacher_id>/analytics', methods=['GET'])
     def get_teacher_analytics(teacher_id):
         teacher = User.query.get(teacher_id)
         if not teacher or teacher.role != 'teacher':
             return jsonify({"message": "Teacher not found"}), 404
             
-        // Get all classes taught by this teacher
+        # Get all classes taught by this teacher
         classes = ClassSchedule.query.filter_by(teacher_id=teacher_id).all()
         
-        // Get attendance records for all classes
+        # Get attendance records for all classes
         class_analytics = []
         for class_schedule in classes:
             subject = class_schedule.subject
@@ -1107,7 +1086,7 @@ def create_app():
                 if record.status == "present":
                     student_attendance[student_name]["present"] += 1
                     
-            // Calculate percentages for each student
+            # Calculate percentages for each student
             for student_name, data in student_attendance.items():
                 if data["total"] > 0:
                     data["percentage"] = round((data["present"] / data["total"]) * 100, 2)
@@ -1115,7 +1094,7 @@ def create_app():
                     data["percentage"] = 0
                     
             class_analytics.append({
-                "subject": f"{subject.name} ({subject.course_code})",
+                "subject": subject.name + " (" + subject.course_code + ")",
                 "room": class_schedule.room,
                 "total_classes": total_classes,
                 "students": student_attendance
@@ -1123,14 +1102,20 @@ def create_app():
             
         return jsonify(class_analytics)
 
-    // Get attendance records for a specific class and date
-    @app.route('/api/class/<int:class_id>/attendance/<date:date>', methods=['GET'])
-    def get_class_attendance_by_date(class_id, date):
+    # Get attendance records for a specific class and date
+    @app.route('/api/class/<int:class_id>/attendance/<date_string>', methods=['GET'])
+    def get_class_attendance_by_date(class_id, date_string):
+        # Parse the date string
+        try:
+            date_obj = datetime.strptime(date_string, '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({"message": "Invalid date format. Use YYYY-MM-DD"}), 400
+            
         class_schedule = ClassSchedule.query.get(class_id)
         if not class_schedule:
             return jsonify({"message": "Class not found"}), 404
             
-        records = AttendanceRecord.query.filter_by(class_id=class_id, date=date).all()
+        records = AttendanceRecord.query.filter_by(class_id=class_id, date=date_obj).all()
         attendance_list = []
         
         for record in records:
@@ -1143,17 +1128,17 @@ def create_app():
             
         return jsonify(attendance_list)
 
-    // Get overall attendance statistics for a student
+    # Get overall attendance statistics for a student
     @app.route('/api/student/<int:student_id>/attendance/stats', methods=['GET'])
     def get_student_attendance_stats(student_id):
         student = User.query.get(student_id)
         if not student or student.role != 'student':
             return jsonify({"message": "Student not found"}), 404
             
-        // Get all attendance records for this student
+        # Get all attendance records for this student
         records = AttendanceRecord.query.filter_by(student_id=student_id).all()
         
-        // Calculate overall statistics
+        # Calculate overall statistics
         total_classes = len(records)
         present_classes = len([r for r in records if r.status == 'present'])
         
@@ -1162,7 +1147,7 @@ def create_app():
         else:
             overall_percentage = 0
             
-        // Calculate statistics by subject
+        # Calculate statistics by subject
         subject_stats = {}
         for record in records:
             subject = record.class_schedule.subject
@@ -1175,24 +1160,24 @@ def create_app():
             if record.status == "present":
                 subject_stats[subject_key]["present"] += 1
                 
-        // Calculate percentages for each subject
+        # Calculate percentages for each subject
         for subject_key, stats in subject_stats.items():
             if stats["total"] > 0:
                 stats["percentage"] = round((stats["present"] / stats["total"]) * 100, 2)
             else:
                 stats["percentage"] = 0
                 
-        // Calculate classes needed to reach 75% attendance
+        # Calculate classes needed to reach 75% attendance
         classes_needed = 0
         if overall_percentage < 75 and total_classes > 0:
-            // Calculate how many more classes need to be attended to reach 75%
+            # Calculate how many more classes need to be attended to reach 75%
             current_present = present_classes
             current_total = total_classes
             target_percentage = 75
             
-            // We need to find x such that (current_present + x) / (current_total + x) >= 0.75
-            // Solving for x: x >= (0.75 * current_total - current_present) / (1 - 0.75)
-            // x >= (0.75 * current_total - current_present) / 0.25
+            # We need to find x such that (current_present + x) / (current_total + x) >= 0.75
+            # Solving for x: x >= (0.75 * current_total - current_present) / (1 - 0.75)
+            # x >= (0.75 * current_total - current_present) / 0.25
             numerator = (0.75 * current_total) - current_present
             if numerator > 0:
                 classes_needed = int(numerator / 0.25) + 1
@@ -1205,14 +1190,14 @@ def create_app():
             "subject_stats": subject_stats
         })
 
-    // Get attendance history for a student
+    # Get attendance history for a student
     @app.route('/api/student/<int:student_id>/attendance/history', methods=['GET'])
     def get_student_attendance_history(student_id):
         student = User.query.get(student_id)
         if not student or student.role != 'student':
             return jsonify({"message": "Student not found"}), 404
             
-        // Get all attendance records for this student, ordered by date
+        # Get all attendance records for this student, ordered by date
         records = AttendanceRecord.query.filter_by(student_id=student_id).order_by(AttendanceRecord.date.desc()).all()
         
         attendance_history = []
@@ -1226,14 +1211,14 @@ def create_app():
             
         return jsonify(attendance_history)
 
-    // Get dynamic AI-powered student routines based on real timetable data
+    # Get dynamic AI-powered student routines based on real timetable data
     @app.route('/api/student/<int:user_id>/smart_routine', methods=['GET'])
     def get_smart_routine(user_id):
         user = User.query.get(user_id)
         if not user: 
             return jsonify({"message": "User not found"}), 404
             
-        // Get student's attendance stats
+        # Get student's attendance stats
         attendance_response = get_student_attendance_stats(user_id)
         attendance_data = attendance_response.get_json()
         
@@ -1245,7 +1230,7 @@ def create_app():
         
         routine = [{"time": c.start_time, "title": c.subject.name, "type": "class"} for c in student_classes]
         
-        // Create a more comprehensive prompt for the AI
+        # Create a more comprehensive prompt for the AI
         subject_stats_str = ""
         for subject, stats in attendance_data.get("subject_stats", {}).items():
             subject_stats_str += f"{subject}: {stats['percentage']}% ({stats['present']}/{stats['total']}), "
@@ -1273,7 +1258,7 @@ def create_app():
         branch = Branch.query.get(user.branch_id)
         semester = Semester.query.get(user.current_semester_id)
         
-        // Add attendance warning if needed
+        # Add attendance warning if needed
         warning_message = None
         if attendance_data.get("overall_percentage", 0) < 75:
             classes_needed = attendance_data.get("classes_needed_for_75_percent", 0)

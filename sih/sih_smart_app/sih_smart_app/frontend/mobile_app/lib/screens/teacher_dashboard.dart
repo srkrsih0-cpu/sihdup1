@@ -1,7 +1,7 @@
 // lib/screens/teacher_dashboard.dart
 import 'package:flutter/material.dart';
-import 'package:mobile_app/components/custom_loading_indicator.dart';
 import 'package:mobile_app/components/ui_components.dart';
+import 'package:mobile_app/theme/app_theme.dart';
 import 'package:mobile_app/screens/attendance_action_screen.dart';
 import 'package:mobile_app/screens/login_screen.dart';
 import 'package:mobile_app/screens/view_attendance_screen.dart';
