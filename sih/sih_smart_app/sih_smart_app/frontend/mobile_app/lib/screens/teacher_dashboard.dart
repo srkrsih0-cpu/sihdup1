@@ -1,11 +1,13 @@
 // lib/screens/teacher_dashboard.dart
 import 'package:flutter/material.dart';
 import 'package:mobile_app/components/custom_loading_indicator.dart';
+import 'package:mobile_app/components/ui_components.dart';
 import 'package:mobile_app/screens/attendance_action_screen.dart';
 import 'package:mobile_app/screens/login_screen.dart';
 import 'package:mobile_app/screens/view_attendance_screen.dart';
 import 'package:mobile_app/services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 // The class is now correctly named TeacherDashboard
 class TeacherDashboard extends StatefulWidget {
@@ -58,7 +60,12 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Today's Schedule"),
-        actions: [IconButton(icon: const Icon(Icons.logout), onPressed: _logout)],
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout), 
+            onPressed: _logout
+          ),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: _refreshTimetable,
@@ -69,17 +76,32 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
               return const CustomLoadingIndicator();
             }
             if (snapshot.hasError) {
-              return Center(child: Text('Error: Could not load schedule.'));
+              return Center(
+                child: EmptyStateWidget(
+                  title: 'Error Loading Schedule',
+                  message: 'There was an error loading your schedule. Please try again.',
+                  icon: Icons.error_outline,
+                  onRetry: _refreshTimetable,
+                ),
+              );
             }
             if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return const Center(child: Text('No classes scheduled for today.'));
+              return const Center(
+                child: EmptyStateWidget(
+                  title: 'No Classes Today',
+                  message: 'You have no classes scheduled for today.',
+                  icon: Icons.calendar_today,
+                ),
+              );
             }
 
             final classes = snapshot.data!;
             return ListView.builder(
               padding: const EdgeInsets.all(12.0),
               itemCount: classes.length,
-              itemBuilder: (context, index) => _buildClassCard(context, classes[index]),
+              itemBuilder: (context, index) => _buildClassCard(context, classes[index])
+                  .animate(delay: (index * 50).ms)
+                  .slideX(duration: 300.ms, begin: -1),
             );
           },
         ),
@@ -95,16 +117,29 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
       margin: const EdgeInsets.symmetric(vertical: 8.0),
       child: InkWell(
         onTap: () => _onClassTap(classItem),
-        borderRadius: BorderRadius.circular(12.0),
+        borderRadius: BorderRadius.circular(16.0),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Row(
             children: [
               Column(
                 children: [
-                  Text(classItem['start_time'] ?? '', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: theme.primaryColor)),
-                  const Text("to", style: TextStyle(color: Colors.grey)),
-                  Text(classItem['end_time'] ?? '', style: TextStyle(color: Colors.grey[600])),
+                  Text(
+                    classItem['start_time'] ?? '', 
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold, 
+                      fontSize: 16, 
+                      color: theme.primaryColor
+                    )
+                  ),
+                  const Text(
+                    "to", 
+                    style: TextStyle(color: Colors.grey)
+                  ),
+                  Text(
+                    classItem['end_time'] ?? '', 
+                    style: TextStyle(color: Colors.grey[600])
+                  ),
                 ],
               ),
               const VerticalDivider(width: 32),
@@ -112,17 +147,25 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(classItem['title'] ?? 'No Title', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                    Text(
+                      classItem['title'] ?? 'No Title', 
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold, 
+                        fontSize: 18
+                      )
+                    ),
                     const SizedBox(height: 4),
-                    Text('${classItem['course_code'] ?? 'N/A'} • ${classItem['room'] ?? 'N/A'}', style: TextStyle(color: Colors.grey[700])),
+                    Text(
+                      '${classItem['course_code'] ?? 'N/A'} • ${classItem['room'] ?? 'N/A'}', 
+                      style: TextStyle(color: Colors.grey[700])
+                    ),
                   ],
                 ),
               ),
-              Chip(
-                avatar: Icon(isAttendanceTaken ? Icons.check_circle : Icons.pending_actions, color: isAttendanceTaken ? Colors.green : Colors.orange, size: 18),
-                label: Text(isAttendanceTaken ? 'Completed' : 'Pending', style: const TextStyle(fontWeight: FontWeight.bold)),
-                backgroundColor: isAttendanceTaken ? Colors.green.withOpacity(0.15) : Colors.orange.withOpacity(0.15),
-                shape: const StadiumBorder(side: BorderSide(color: Colors.transparent)),
+              StatusBadge(
+                text: isAttendanceTaken ? 'Completed' : 'Pending',
+                color: isAttendanceTaken ? AppColors.success : AppColors.warning,
+                icon: isAttendanceTaken ? Icons.check_circle : Icons.pending_actions,
               ),
             ],
           ),

@@ -5,6 +5,7 @@ import 'package:mobile_app/screens/login_screen.dart';
 import 'package:mobile_app/screens/student_dashboard.dart';
 import 'package:mobile_app/screens/teacher_dashboard.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'theme/app_theme.dart';
 
 void main() {
   runApp(const MyApp());
@@ -21,49 +22,9 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Smart Curriculum',
+      title: 'OmniAttend - Smart Curriculum',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        primaryColor: const Color(0xFF4A69FF),
-        scaffoldBackgroundColor: const Color(0xFFF4F6F8),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF4A69FF),
-          background: const Color(0xFFF4F6F8),
-          primary: const Color(0xFF4A69FF),
-        ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFFF4F6F8),
-          elevation: 0,
-          iconTheme: IconThemeData(color: Colors.black87),
-          titleTextStyle: TextStyle(
-            color: Colors.black87,
-            fontSize: 20,
-            fontFamily: 'Inter',
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF4A69FF),
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10.0),
-            ),
-            padding: const EdgeInsets.symmetric(vertical: 16.0),
-            textStyle: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            )
-          ),
-        ),
-        cardTheme: CardThemeData(
-          elevation: 1.0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12.0),
-          ),
-        ),
-      ),
+      theme: AppTheme.lightTheme,
       home: FutureBuilder<String?>(
         future: _getInitialRoute(),
         builder: (context, snapshot) {

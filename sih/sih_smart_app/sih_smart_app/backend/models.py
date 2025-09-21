@@ -7,7 +7,6 @@ db = SQLAlchemy()
 # Association table for student enrollments in a specific semester
 enrollments = db.Table('enrollments',
     db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
-    # --- FIX WAS HERE: Removed the extra, nested db.Column() ---
     db.Column('semester_id', db.Integer, db.ForeignKey('semester.id'), primary_key=True)
 )
 
@@ -22,6 +21,11 @@ class User(db.Model):
     password = db.Column(db.String(120), nullable=False)
     name = db.Column(db.String(100), nullable=False)
     role = db.Column(db.String(20), nullable=False)
+    
+    # Add missing fields
+    email = db.Column(db.String(120), nullable=True)
+    phone = db.Column(db.String(20), nullable=True)
+    designation = db.Column(db.String(100), nullable=True)
     
     institution_id = db.Column(db.Integer, db.ForeignKey('institution.id'), nullable=False)
     institution = db.relationship('Institution', foreign_keys=[institution_id], backref=db.backref('users', lazy=True))

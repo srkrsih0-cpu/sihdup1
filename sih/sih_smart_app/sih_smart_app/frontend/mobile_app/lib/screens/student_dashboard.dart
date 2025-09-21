@@ -1,9 +1,10 @@
 // lib/screens/student_dashboard.dart
 import 'package:flutter/material.dart';
-import 'package:mobile_app/components/custom_loading_indicator.dart';
+import 'package:mobile_app/components/ui_components.dart';
 import 'package:mobile_app/screens/login_screen.dart';
 import 'package:mobile_app/services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class StudentDashboard extends StatefulWidget {
   const StudentDashboard({super.key});
@@ -39,7 +40,12 @@ class _StudentDashboardState extends State<StudentDashboard> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Daily Routine'),
-        actions: [IconButton(icon: const Icon(Icons.logout), onPressed: _logout)],
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: _logout,
+          ),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: _refreshRoutine,
@@ -50,17 +56,38 @@ class _StudentDashboardState extends State<StudentDashboard> {
               return const CustomLoadingIndicator();
             }
             if (snapshot.hasError) {
-              return Center(child: Text('Error: ${snapshot.error}'));
+              return Center(
+                child: EmptyStateWidget(
+                  title: 'Error Loading Routine',
+                  message: 'There was an error loading your routine. Please try again.',
+                  icon: Icons.error_outline,
+                  onRetry: _refreshRoutine,
+                ),
+              );
             }
             if (!snapshot.hasData || snapshot.data!['routine'] == null || (snapshot.data!['routine'] as List).isEmpty) {
-              return const Center(child: Text('No routine available for today.'));
+              return const Center(
+                child: EmptyStateWidget(
+                  title: 'No Routine Available',
+                  message: 'No routine available for today.',
+                  icon: Icons.calendar_today,
+                ),
+              );
             }
             
             final routineData = snapshot.data!;
             final routine = routineData['routine'] as List;
+            final warningMessage = routineData['warning_message'] as String?;
             
             return CustomScrollView(
               slivers: [
+                if (warningMessage != null)
+                  SliverToBoxAdapter(
+                    child: Container(
+                      margin: const EdgeInsets.all(16.0),
+                      child: StatusBadge.warning(warningMessage),
+                    ).animate().fadeIn(duration: 300.ms),
+                  ),
                 SliverToBoxAdapter(
                   child: _buildHeader(context, routineData['branch'], routineData['semester']),
                 ),
@@ -72,7 +99,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                         routine[index],
                         isFirst: index == 0,
                         isLast: index == routine.length - 1
-                      );
+                      ).animate(delay: (index * 100).ms).slideX(duration: 300.ms, begin: -1);
                     },
                     childCount: routine.length,
                   ),
@@ -93,9 +120,20 @@ class _StudentDashboardState extends State<StudentDashboard> {
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
-              Text(branch, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+              Text(
+                branch, 
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).primaryColor,
+                )
+              ),
               const SizedBox(height: 4),
-              Text(semester, style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                semester, 
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Colors.grey[600],
+                )
+              ),
             ],
           ),
         ),
@@ -116,7 +154,12 @@ class _StudentDashboardState extends State<StudentDashboard> {
             child: Column(
               children: [
                 if (!isFirst)
-                  Expanded(child: Container(width: 2, color: Colors.grey[300])),
+                  Expanded(
+                    child: Container(
+                      width: 2, 
+                      color: Colors.grey[300],
+                    ),
+                  ),
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
@@ -134,7 +177,12 @@ class _StudentDashboardState extends State<StudentDashboard> {
                   ),
                 ),
                 if (!isLast)
-                  Expanded(child: Container(width: 2, color: Colors.grey[300])),
+                  Expanded(
+                    child: Container(
+                      width: 2, 
+                      color: Colors.grey[300],
+                    ),
+                  ),
               ],
             ),
           ),
@@ -146,7 +194,10 @@ class _StudentDashboardState extends State<StudentDashboard> {
                   padding: const EdgeInsets.only(top: 8.0),
                   child: Text(
                     event['time'] ?? '',
-                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.primaryColor,
+                    )
                   ),
                 ),
                 Card(
@@ -159,7 +210,9 @@ class _StudentDashboardState extends State<StudentDashboard> {
                       children: [
                         Text(
                           event['title'] ?? 'Untitled Event',
-                          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          )
                         ),
                         const SizedBox(height: 4),
                         Text(
